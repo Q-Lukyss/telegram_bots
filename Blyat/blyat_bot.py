@@ -8,7 +8,6 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, fil
 from dotenv import load_dotenv
 from datetime import datetime
 
-
 # Configurer le locale en français
 try:
     locale.setlocale(locale.LC_TIME, 'fr_FR.UTF-8')
@@ -29,7 +28,8 @@ logger = logging.getLogger(__name__)
 
 # Définissez les fonctions de gestion des commandes
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text('Coucou, moi c\'est Blyat je suis un peu timide mais je vous servirai de mon mieux.')
+    await update.message.reply_text(
+        'Coucou, moi c\'est Blyat je suis un peu timide mais je vous servirai de mon mieux.')
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -37,7 +37,9 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         "Euh... alors Voici mes Commandes :\n"
         "/start pour commencer\n"
         "/help pour obtenir cette aide\n"
-        "/info pour en apprendre davantage à mon sujet"
+        "/info pour en apprendre davantage à mon sujet\n"
+        "/cyka /blyat Pour rigoler\n"
+        "A vous d'explorer le reste hihi\n"
     )
 
 
@@ -60,8 +62,13 @@ async def blyat(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 async def sexeanale(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text('Ahah Vous êtes des obsédés UwU')
 
+
 async def suce(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text('Seulement maitre Lukyss =P')
+    user_id = update.message.from_user.id
+    if user_id == os.getenv("Lukyss_id"):
+        await update.message.reply_text('Pas en public maître voyons ^^')
+    else:
+        await update.message.reply_text('Même pas en rêve nerd')
 
 
 # Fonction principale du bot
@@ -79,7 +86,7 @@ def main() -> None:
     application.add_handler(CommandHandler("suce", suce))
 
     # Répétez les messages texte
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
+    # application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
 
     # Démarrez le bot
     application.run_polling()

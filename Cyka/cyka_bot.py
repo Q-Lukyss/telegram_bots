@@ -34,11 +34,16 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
-        "Je vais vous aidez\n"
-        "Voici la liste des commandes\n"
+        "Je vais vous guider ;)\n"
         "/start pour commencer\n"
         "/help pour obtenir cette aide\n"
-        "/info pour en apprendre davantage à mon sujet"
+        "/info pour en apprendre davantage à mon sujet\n"
+        "/cyka /blyat Pour rigoler\n"
+        "/ville Nom de Ville pour en apprendre plus sur une ville Française\n"
+        "/blague et /trivia sont assez explicites\n"
+        "/jours_feries annee aussi\n"
+        "/id Pour connaître votre Id Telegram\n"
+        "Et bien d'autres commandes Top secrètes dans le futur aha :P\n"
     )
 
 
@@ -141,6 +146,12 @@ async def villes(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await update.message.reply_text(f"Désolé, je n'ai pas pu obtenir les informations pour la ville '{city_name}'.")
 
 
+async def get_my_id(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_id = update.message.from_user.id
+    print(f"User ID: {user_id}")
+    await update.message.reply_text(f"Votre id : {user_id}")
+
+
 # Fonction principale du bot
 def main() -> None:
     # Créez l'application avec votre token
@@ -157,9 +168,10 @@ def main() -> None:
     application.add_handler(CommandHandler("trivia", trivia))
     application.add_handler(CommandHandler("jours_feries", jours_feries))
     application.add_handler(CommandHandler("villes", villes))
+    application.add_handler(CommandHandler("id", get_my_id))
 
     # Répétez les messages texte
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
+    # application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
 
     # Démarrez le bot
     application.run_polling()
