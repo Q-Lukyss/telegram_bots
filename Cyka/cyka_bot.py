@@ -1,13 +1,13 @@
 import logging
 import requests
-from openai import OpenAI
+import os
+import locale
+
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
-import os
 from dotenv import load_dotenv
 from datetime import datetime
-import locale
-import openai
+
 
 # Configurer le locale en français
 try:
@@ -141,28 +141,6 @@ async def villes(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await update.message.reply_text(f"Désolé, je n'ai pas pu obtenir les informations pour la ville '{city_name}'.")
 
 
-async def ask_chatgpt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None: # Marche pas car payant
-    if len(context.args) == 0:
-        await update.message.reply_text("Veuillez fournir une question. Par exemple : /gpt Quelle est la capitale de la France ?")
-        return
-
-    question = ' '.join(context.args)
-    client = OpenAI()
-    try:
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": question}
-            ]
-        )
-        answer = response['choices'][0]['message']['content'].strip()
-        await update.message.reply_text(answer)
-    except Exception as e:
-        logger.error(f"Error fetching response from OpenAI: {e}")
-        await update.message.reply_text("Désolé, je n'ai pas pu obtenir une réponse pour votre question.")
-
-
 # Fonction principale du bot
 def main() -> None:
     # Créez l'application avec votre token
@@ -179,7 +157,6 @@ def main() -> None:
     application.add_handler(CommandHandler("trivia", trivia))
     application.add_handler(CommandHandler("jours_feries", jours_feries))
     application.add_handler(CommandHandler("villes", villes))
-    # application.add_handler(CommandHandler("gpt", ask_chatgpt)) il Faut un plan payant
 
     # Répétez les messages texte
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
@@ -190,4 +167,3 @@ def main() -> None:
 
 if __name__ == '__main__':
     main()
-
