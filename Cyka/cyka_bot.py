@@ -1,13 +1,14 @@
+import asyncio
 import logging
 import requests
 import os
 import locale
 
+from apscheduler.schedulers.background import BackgroundScheduler
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 from dotenv import load_dotenv
 from datetime import datetime
-
 
 # Configurer le locale en français
 try:
@@ -152,6 +153,20 @@ async def get_my_id(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(f"Votre id : {user_id}")
 
 
+# Fonction pour envoyer un message tous les jours pairs
+async def message_journalier(context: ContextTypes.DEFAULT_TYPE):
+    chat_id = os.getenv('TSA_GROUP_ID')
+    today = datetime.now().day
+    if today % 2 == 0:
+        await context.bot.send_message(chat_id=chat_id, text="Hello les boyz !!!\nBon courage pour aujourd'hui <3")
+
+
+# Fonction synchrone pour appeler une coroutine
+# Besoin de ceci car les APScheduler appelle des functions synchrones et non asynchrones
+def run_async(func, *args):
+    asyncio.run(func(*args))
+
+
 # Fonction principale du bot
 def main() -> None:
     # Créez l'application avec votre token
@@ -172,6 +187,11 @@ def main() -> None:
 
     # Répétez les messages texte
     # application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
+
+    # Gérer les tâches programmées Pour Le message journalier
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(run_async, 'cron', hour=8, minute=0, second=0, args=[message_journalier, application])
+    scheduler.start()
 
     # Démarrez le bot
     application.run_polling()

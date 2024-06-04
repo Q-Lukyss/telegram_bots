@@ -1,8 +1,10 @@
+import asyncio
 import logging
 import requests
 import os
 import locale
 
+from apscheduler.schedulers.background import BackgroundScheduler
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 from dotenv import load_dotenv
@@ -65,10 +67,21 @@ async def sexeanale(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def suce(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.message.from_user.id
-    if user_id == os.getenv("Lukyss_id"):
+    if user_id == int(os.getenv("Lukyss_id")):
         await update.message.reply_text('Pas en public maître voyons ^^')
     else:
         await update.message.reply_text('Même pas en rêve nerd')
+
+
+async def message_journalier(context: ContextTypes.DEFAULT_TYPE):
+    chat_id = os.getenv('TSA_GROUP_ID')
+    today = datetime.now().day
+    if today % 2 == 1:
+        await context.bot.send_message(chat_id=chat_id, text="Coucou les mecs <3\nPassez une bonne journée :)")
+
+
+def run_async(func, *args):
+    asyncio.run(func(*args))
 
 
 # Fonction principale du bot
@@ -87,6 +100,11 @@ def main() -> None:
 
     # Répétez les messages texte
     # application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
+
+    # Gérer les tâches programmées Pour Le message journalier
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(run_async, 'cron', hour=8, minute=0, second=0, args=[message_journalier, application])
+    scheduler.start()
 
     # Démarrez le bot
     application.run_polling()
