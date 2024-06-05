@@ -1,5 +1,8 @@
 import asyncio
+import json
 import logging
+import random
+
 import requests
 import os
 import locale
@@ -9,6 +12,8 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 from dotenv import load_dotenv
 from datetime import datetime
+
+from Libraries.Emoji_Handler.emoji import load_negative_emoji, load_positive_emoji
 
 # Configurer le locale en français
 try:
@@ -75,10 +80,10 @@ async def suce(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     elif user_id == int(os.getenv("Vincent_id")):
         await update.message.reply_text('On a déja eu cette conversation Kezouze\nJe te vois plus comme une copine'
                                         '\nUwU')
-        await context.bot.set_message_reaction(chat_id=chat_id, message_id=message_id, reaction='😨')
+        await context.bot.set_message_reaction(chat_id=chat_id, message_id=message_id, reaction=load_negative_emoji())
     else:
         await update.message.reply_text('Même pas en rêve nerd')
-        await context.bot.set_message_reaction(chat_id=chat_id, message_id=message_id, reaction='🤮')
+        await context.bot.set_message_reaction(chat_id=chat_id, message_id=message_id, reaction=load_negative_emoji())
 
 
 # Fonction pour réagir aux messages
@@ -87,7 +92,7 @@ async def love_lukyss_messages(update: Update, context: ContextTypes.DEFAULT_TYP
     chat_id = update.message.chat_id
     user_id = update.message.from_user.id
     if user_id == int(os.getenv("Lukyss_id")):
-        await context.bot.set_message_reaction(chat_id=chat_id, message_id=message_id, reaction='❤️‍🔥')
+        await context.bot.set_message_reaction(chat_id=chat_id, message_id=message_id, reaction=load_positive_emoji())
 
 
 async def message_journalier(context: ContextTypes.DEFAULT_TYPE):

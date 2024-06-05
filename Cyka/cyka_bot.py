@@ -1,5 +1,8 @@
 import asyncio
+import json
 import logging
+import random
+
 import requests
 import os
 import locale
@@ -9,6 +12,8 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 from dotenv import load_dotenv
 from datetime import datetime
+
+from Libraries.Emoji_Handler.emoji import load_positive_emoji
 
 # Configurer le locale en français
 try:
@@ -159,7 +164,7 @@ async def like_lukyss_messages(update: Update, context: ContextTypes.DEFAULT_TYP
     chat_id = update.message.chat_id
     user_id = update.message.from_user.id
     if user_id == int(os.getenv("Lukyss_id")):
-        await context.bot.set_message_reaction(chat_id=chat_id, message_id=message_id, reaction='👍')
+        await context.bot.set_message_reaction(chat_id=chat_id, message_id=message_id, reaction=load_positive_emoji)
 
 
 # Fonction pour envoyer un message tous les jours pairs
