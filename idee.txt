@@ -1,0 +1,5 @@
+Like automatiques
+text to speech
+Reponse aux stickers
+/cong Nom
+Message personnalisés selon l'id
