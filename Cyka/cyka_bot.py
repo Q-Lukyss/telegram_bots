@@ -153,6 +153,15 @@ async def get_my_id(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(f"Votre id : {user_id}")
 
 
+# Fonction pour réagir aux messages
+async def like_lukyss_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    message_id = update.message.message_id
+    chat_id = update.message.chat_id
+    user_id = update.message.from_user.id
+    if user_id == int(os.getenv("Lukyss_id")):
+        await context.bot.set_message_reaction(chat_id=chat_id, message_id=message_id, reaction='👍')
+
+
 # Fonction pour envoyer un message tous les jours pairs
 async def message_journalier(context: ContextTypes.DEFAULT_TYPE):
     chat_id = os.getenv('TSA_GROUP_ID')
@@ -185,8 +194,8 @@ def main() -> None:
     application.add_handler(CommandHandler("villes", villes))
     application.add_handler(CommandHandler("id", get_my_id))
 
-    # Répétez les messages texte
-    # application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
+    # Add a handler to react to text messages
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, like_lukyss_messages))
 
     # Gérer les tâches programmées Pour Le message journalier
     scheduler = BackgroundScheduler()
