@@ -71,11 +71,11 @@ async def suce(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.message.from_user.id
     if user_id == int(os.getenv("Lukyss_id")):
         await update.message.reply_text('Pas en public maître voyons ^^')
-        await context.bot.set_message_reaction(chat_id=chat_id, message_id=message_id, reaction='🥵')
+        await context.bot.set_message_reaction(chat_id=chat_id, message_id=message_id, reaction='😈')
     elif user_id == int(os.getenv("Vincent_id")):
         await update.message.reply_text('On a déja eu cette conversation Kezouze\nJe te vois plus comme une copine'
                                         '\nUwU')
-        await context.bot.set_message_reaction(chat_id=chat_id, message_id=message_id, reaction='🙀')
+        await context.bot.set_message_reaction(chat_id=chat_id, message_id=message_id, reaction='😨')
     else:
         await update.message.reply_text('Même pas en rêve nerd')
         await context.bot.set_message_reaction(chat_id=chat_id, message_id=message_id, reaction='🤮')
@@ -87,7 +87,7 @@ async def love_lukyss_messages(update: Update, context: ContextTypes.DEFAULT_TYP
     chat_id = update.message.chat_id
     user_id = update.message.from_user.id
     if user_id == int(os.getenv("Lukyss_id")):
-        await context.bot.set_message_reaction(chat_id=chat_id, message_id=message_id, reaction='💖')
+        await context.bot.set_message_reaction(chat_id=chat_id, message_id=message_id, reaction='❤️‍🔥')
 
 
 async def message_journalier(context: ContextTypes.DEFAULT_TYPE):
