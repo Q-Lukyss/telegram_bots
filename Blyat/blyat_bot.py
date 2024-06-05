@@ -2,10 +2,14 @@ import asyncio
 import json
 import logging
 import random
+import sys
 
 import requests
 import os
 import locale
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from telegram import Update
