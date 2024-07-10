@@ -3,3 +3,7 @@ text to speech
 Reponse aux stickers
 /cong Nom
 Message personnalisés selon l'id
+Trnsport de Bus citura
+Liste Objectif
+Liste Todos
+refactor du code
