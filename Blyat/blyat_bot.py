@@ -10,6 +10,7 @@ import locale
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+
 from apscheduler.schedulers.background import BackgroundScheduler
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
@@ -81,8 +82,7 @@ async def suce(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await update.message.reply_text('Pas en public maître voyons ^^')
         await context.bot.set_message_reaction(chat_id=chat_id, message_id=message_id, reaction='😈')
     elif user_id == int(os.getenv("Vincent_id")):
-        await update.message.reply_text('On a déja eu cette conversation Kezouze\nJe te vois plus comme une copine'
-                                        '\nUwU')
+        await update.message.reply_text('Si tu trouves une offrande pour mon maître on verra =3')
         await context.bot.set_message_reaction(chat_id=chat_id, message_id=message_id, reaction=load_negative_emoji())
     else:
         await update.message.reply_text('Même pas en rêve nerd')
