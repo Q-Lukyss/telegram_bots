@@ -22,3 +22,8 @@ services:
       - ./Blyat:/app/Blyat          # Monte le dossier Blyat uniquement
     environment:
       - PYTHONPATH=/app  # Défini PYTHONPATH
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"

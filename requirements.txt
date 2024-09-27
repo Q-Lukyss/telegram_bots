@@ -2,3 +2,5 @@ requests
 python-telegram-bot
 APScheduler
 python-dotenv
+pytz
+redis
