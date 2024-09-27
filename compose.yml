@@ -10,6 +10,7 @@ services:
       - ./Cyka:/app/Cyka            # Monte le dossier Cyka uniquement
     environment:
       - PYTHONPATH=/app  # Défini PYTHONPATH
+      - TZ=Europe/Paris  # Définir le fuseau horaire
 
   # Bot Blyat
   blyat_bot:
@@ -22,8 +23,11 @@ services:
       - ./Blyat:/app/Blyat          # Monte le dossier Blyat uniquement
     environment:
       - PYTHONPATH=/app  # Défini PYTHONPATH
+      - TZ=Europe/Paris  # Définir le fuseau horaire
 
   redis:
     image: redis:alpine
     ports:
       - "6379:6379"
+    environment:
+      - TZ=Europe/Paris  # Définir le fuseau horaire

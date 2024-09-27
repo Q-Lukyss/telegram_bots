@@ -13,3 +13,11 @@ def load_messages():
 def get_random_daily_messages():
     random_daily_messages = random.choice(load_messages()['daily'])
     return random_daily_messages
+
+def get_cykablyat_comeback():
+    cykablyat_comeback = load_messages()['cykablyat_rocket_return']
+    return cykablyat_comeback
+
+def get_random_daily_1337_messages():
+    random_daily_1337_messages = random.choice(load_messages()['1337'])
+    return random_daily_1337_messages

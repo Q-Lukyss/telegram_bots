@@ -1,12 +1,13 @@
 import asyncio
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from pytz import timezone
 from apscheduler.schedulers.background import BackgroundScheduler
 from telegram import Update
-from telegram.ext import CommandHandler
+from telegram.ext import CommandHandler, ApplicationBuilder
 
 from Libraries.Emoji_Handler.emoji import load_negative_emoji
+from Libraries.messages_handler.messages import get_cykablyat_comeback
 
 
 def add_blyat_handlers(application):
@@ -16,6 +17,18 @@ def add_blyat_handlers(application):
     application.add_handler(CommandHandler("cyka", cyka))
     application.add_handler(CommandHandler("sexeanale", sexeanale))
     application.add_handler(CommandHandler("suce", suce))
+
+    # Planificateur APScheduler
+    scheduler = BackgroundScheduler()
+    run_time = datetime.now() + timedelta(minutes=1, seconds=21)
+    # Utiliser le déclencheur 'date' pour exécuter une tâche une seule fois
+    scheduler.add_job(run_async, 'date', run_date=run_time, args=[send_one_shot_message, application])
+    # Programmer les messages en boucle avec un index
+    delay_seconds = 2
+    for i in range(1, len(get_cykablyat_comeback()), 2):
+        scheduled_time = run_time + timedelta(seconds=5 + i * delay_seconds)
+        scheduler.add_job(lambda i=i: asyncio.run(send_cykablyat_message(i)), 'date', run_date=scheduled_time)
+    scheduler.start()
 
 
 # Commande spécifique à Blyar
@@ -59,3 +72,22 @@ async def suce(update: Update, context) -> None:
     else:
         await update.message.reply_text('Même pas en rêve nerd')
         await context.bot.set_message_reaction(chat_id=chat_id, message_id=message_id, reaction=load_negative_emoji())
+
+
+async def send_one_shot_message(context):
+    chat_id = os.getenv('TSA_GROUP_ID')
+    text = "M.. Moi aussi ! 🥳🥳🥳"
+    application = ApplicationBuilder().token(os.getenv('BLYAT_TOKEN')).build()
+    await application.bot.send_message(chat_id=chat_id, text=text)
+
+
+# Fonction générique pour envoyer les messages
+async def send_cykablyat_message(index):
+    chat_id = os.getenv('TSA_GROUP_ID')
+    text = get_cykablyat_comeback()[index]
+    application = ApplicationBuilder().token(os.getenv('BLYAT_TOKEN')).build()
+    await application.bot.send_message(chat_id=chat_id, text=text)
+
+
+def run_async(func, *args):
+    asyncio.run(func(*args))

@@ -1,10 +1,16 @@
-from datetime import datetime
+import asyncio
+import os
+from datetime import datetime, timedelta
 
 import requests
+from apscheduler.schedulers.background import BackgroundScheduler
+from pytz import timezone
 from telegram import Update
-from telegram.ext import CommandHandler
+from telegram.ext import CommandHandler, ApplicationBuilder
 
 import logging
+
+from Libraries.messages_handler.messages import get_cykablyat_comeback
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -25,6 +31,26 @@ def add_cyka_handlers(application):
     application.add_handler(CommandHandler("jours_feries", jours_feries))
     application.add_handler(CommandHandler("ville", villes))
     application.add_handler(CommandHandler("id", get_my_id))
+
+    # Planificateur APScheduler
+    scheduler = BackgroundScheduler()
+    run_time = datetime.now() + timedelta(minutes=1, seconds=20)
+    # Utiliser le déclencheur 'date' pour exécuter une tâche une seule fois
+    scheduler.add_job(run_async, 'date', run_date=run_time, args=[send_one_shot_message, application])
+    # Programmer les messages en boucle avec un index
+    delay_seconds = 2
+    length = len(get_cykablyat_comeback())
+    for i in range(0, length - 1, 2):
+        scheduled_time = run_time + timedelta(seconds=5 + i * delay_seconds)
+        scheduler.add_job(lambda i=i: asyncio.run(send_cykablyat_message(i)), 'date', run_date=scheduled_time)
+
+    if length % 2 != 0:
+        # Le dernier élément sera à l'indice length - 1
+        last_scheduled_time = run_time + timedelta(seconds=5 + (length - 1) * delay_seconds)
+        scheduler.add_job(lambda: asyncio.run(send_cykablyat_message(length - 1)), 'date', run_date=last_scheduled_time)
+
+    scheduler.start()
+
 
 # Commande spécifique à Cyka
 async def help_command_cyka(update: Update, context) -> None:
@@ -142,3 +168,22 @@ async def get_my_id(update: Update, context) -> None:
     user_id = update.message.from_user.id
     print(f"User ID: {user_id}")
     await update.message.reply_text(f"Votre id : {user_id}")
+
+
+async def send_one_shot_message(context):
+    chat_id = os.getenv('TSA_GROUP_ID')
+    text="Je suis de Retour Motherfuckers, je vous ai manqué (c'est pas une question 😛) !"
+    application = ApplicationBuilder().token(os.getenv('CYKA_TOKEN')).build()
+    await application.bot.send_message(chat_id=chat_id, text=text)
+
+
+# Fonction générique pour envoyer les messages
+async def send_cykablyat_message(index):
+    chat_id = os.getenv('TSA_GROUP_ID')
+    text = get_cykablyat_comeback()[index]
+    application = ApplicationBuilder().token(os.getenv('CYKA_TOKEN')).build()
+    await application.bot.send_message(chat_id=chat_id, text=text)
+
+
+def run_async(func, *args):
+    asyncio.run(func(*args))

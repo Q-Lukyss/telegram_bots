@@ -10,7 +10,7 @@ from telegram.ext import CommandHandler, MessageHandler, filters, ApplicationBui
 
 from Libraries.Emoji_Handler.emoji import load_positive_emoji
 from Libraries.handlers.commands_cyka import logger
-from Libraries.messages_handler.messages import get_random_daily_messages
+from Libraries.messages_handler.messages import get_random_daily_messages, get_random_daily_1337_messages
 
 
 def add_common_handlers(application):
@@ -21,7 +21,9 @@ def add_common_handlers(application):
 
     # Gérer les tâches programmées Pour Le message journalier
     scheduler = BackgroundScheduler(timezone=timezone('Europe/Paris'))
-    scheduler.add_job(run_async, 'cron', minute='*', args=[send_daily_message, application])
+    scheduler.add_job(run_async, 'cron', hour=8, minute=0, second= 0, args=[send_daily_message, application])
+    scheduler.add_job(run_async, 'cron', hour=13, minute=37, second= 5, args=[send_daily_1337_message, application])
+
     scheduler.start()
 
 
@@ -53,17 +55,18 @@ async def message_journalier(context):
         await context.bot.send_message(chat_id=chat_id, text="Coucou les mecs <3\nPassez une bonne journée :)")
 
 
-async def send_daily_message(context):
+# Fonction générique pour envoyer des messages
+async def send_message(context, get_message_func, log_prefix):
     chat_id = os.getenv('TSA_GROUP_ID')
 
     # Utiliser SETNX pour créer le verrou uniquement si aucun autre ne l'a créé
     if r.set("message_lock", "locked", ex=60, nx=True):  # Verrou avec expiration de 60 secondes
-        logger.info(f"[{datetime.now()}] Verrou créé, envoi du message")
+        logger.info(f"[{datetime.now()}] {log_prefix} Verrou créé, envoi du message")
 
         try:
             # Choisir aléatoirement entre Cyka et Blyat
             bot_choice = random.choice(['Cyka', 'Blyat'])
-            text = get_random_daily_messages()
+            text = get_message_func()  # Récupérer le message avec la fonction passée en argument
 
             if bot_choice == 'Cyka':
                 application = ApplicationBuilder().token(os.getenv('CYKA_TOKEN')).build()
@@ -71,13 +74,22 @@ async def send_daily_message(context):
                 application = ApplicationBuilder().token(os.getenv('BLYAT_TOKEN')).build()
 
             await application.bot.send_message(chat_id=chat_id, text=text)
-            logger.info(f"[{datetime.now()}] Message envoyé par {bot_choice}")
+            logger.info(f"[{datetime.now()}] {log_prefix} Message envoyé par {bot_choice}")
         finally:
             # Supprimer le verrou après l'envoi du message
             r.delete("message_lock")
-            logger.info(f"[{datetime.now()}] Verrou supprimé après envoi du message")
+            logger.info(f"[{datetime.now()}] {log_prefix} Verrou supprimé après envoi du message")
     else:
-        logger.info(f"[{datetime.now()}] Un autre bot envoie déjà un message. Annulation.")
+        logger.info(f"[{datetime.now()}] {log_prefix} Un autre bot envoie déjà un message. Annulation.")
+
+
+# Fonction pour le message journalier classique
+async def send_daily_message(context):
+    await send_message(context, get_random_daily_messages, "[Message Journalier]")
+
+# Fonction pour le message 1337
+async def send_daily_1337_message(context):
+    await send_message(context, get_random_daily_1337_messages, "[Message 1337]")
 
 
 def run_async(func, *args):
