@@ -1,0 +1,24 @@
+services:
+  # Bot Cyka
+  cyka_bot:
+    build: .  # Utilise le Dockerfile pour installer les dépendances
+    env_file: .env
+    command: python /app/Cyka/cyka_bot.py  # Exécuter le script du bot Cyka
+    restart: unless-stopped
+    volumes:
+      - ./Libraries:/app/Libraries  # Monte les librairies partagées
+      - ./Cyka:/app/Cyka            # Monte le dossier Cyka uniquement
+    environment:
+      - PYTHONPATH=/app  # Défini PYTHONPATH
+
+  # Bot Blyat
+  blyat_bot:
+    build: .  # Utilise le Dockerfile pour installer les dépendances
+    env_file: .env
+    command: python /app/Blyat/blyat_bot.py  # Exécuter le script du bot Blyat
+    restart: unless-stopped
+    volumes:
+      - ./Libraries:/app/Libraries  # Monte les librairies partagées
+      - ./Blyat:/app/Blyat          # Monte le dossier Blyat uniquement
+    environment:
+      - PYTHONPATH=/app  # Défini PYTHONPATH
