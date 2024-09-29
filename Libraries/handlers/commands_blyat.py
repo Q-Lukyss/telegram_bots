@@ -8,7 +8,7 @@ from telegram import Update
 from telegram.ext import CommandHandler, ApplicationBuilder
 
 from Libraries.Emoji_Handler.emoji import load_negative_emoji
-from Libraries.messages_handler.messages import get_cykablyat_comeback, get_random_suce_messages
+from Libraries.messages_handler.messages import get_cykablyat_comeback, get_random_suce_messages_object
 
 
 def add_blyat_handlers(application):
@@ -64,7 +64,7 @@ async def suce(update: Update, context) -> None:
     message_id = update.message.message_id
     chat_id = update.message.chat_id
     user_id = update.message.from_user.id
-    message_suce_object = get_random_suce_messages
+    message_suce_object = get_random_suce_messages_object()
     if user_id == int(os.getenv("Lukyss_id")):
         await update.message.reply_text(random.choice(message_suce_object['moi']))
         await context.bot.set_message_reaction(chat_id=chat_id, message_id=message_id, reaction='😈')
