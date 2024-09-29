@@ -1,2 +1,8 @@
 .env
 .idea/
+
+/Libraries/__pycache__
+/Libraries/handlers/__pycache__
+/Libraries/messages_handler/__pycache__
+/Libraries/common/__pycache__
+/Libraries/Emoji_Handler/__pycache__

@@ -1,5 +1,6 @@
 import asyncio
 import os
+import random
 from datetime import datetime, timedelta
 from pytz import timezone
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -7,7 +8,7 @@ from telegram import Update
 from telegram.ext import CommandHandler, ApplicationBuilder
 
 from Libraries.Emoji_Handler.emoji import load_negative_emoji
-from Libraries.messages_handler.messages import get_cykablyat_comeback
+from Libraries.messages_handler.messages import get_cykablyat_comeback, get_random_suce_messages
 
 
 def add_blyat_handlers(application):
@@ -63,14 +64,21 @@ async def suce(update: Update, context) -> None:
     message_id = update.message.message_id
     chat_id = update.message.chat_id
     user_id = update.message.from_user.id
+    message_suce_object = get_random_suce_messages
     if user_id == int(os.getenv("Lukyss_id")):
-        await update.message.reply_text('Pas en public maître voyons ^^')
+        await update.message.reply_text(random(message_suce_object['moi']))
         await context.bot.set_message_reaction(chat_id=chat_id, message_id=message_id, reaction='😈')
     elif user_id == int(os.getenv("Vincent_id")):
-        await update.message.reply_text('Si tu trouves une offrande pour mon maître on verra =3')
+        await update.message.reply_text(random(message_suce_object['vincent'] + message_suce_object["default"]))
+        await context.bot.set_message_reaction(chat_id=chat_id, message_id=message_id, reaction=load_negative_emoji())
+    elif user_id == int(os.getenv("Florian_id")):
+        await update.message.reply_text(random(message_suce_object['florian'] + message_suce_object["default"]))
+        await context.bot.set_message_reaction(chat_id=chat_id, message_id=message_id, reaction=load_negative_emoji())
+    elif user_id == int(os.getenv("Guillaume_id")):
+        await update.message.reply_text(random(message_suce_object['guillaume'] + message_suce_object["default"]))
         await context.bot.set_message_reaction(chat_id=chat_id, message_id=message_id, reaction=load_negative_emoji())
     else:
-        await update.message.reply_text('Même pas en rêve nerd')
+        await update.message.reply_text(random(message_suce_object["default"]))
         await context.bot.set_message_reaction(chat_id=chat_id, message_id=message_id, reaction=load_negative_emoji())
 
 

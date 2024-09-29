@@ -21,3 +21,7 @@ def get_cykablyat_comeback():
 def get_random_daily_1337_messages():
     random_daily_1337_messages = random.choice(load_messages()['1337'])
     return random_daily_1337_messages
+
+def get_random_suce_messages():
+    random_suce_messages = random.choice(load_messages()['suce'])
+    return random_suce_messages
