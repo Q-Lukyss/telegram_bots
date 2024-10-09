@@ -9,12 +9,15 @@ from telegram import Update
 from telegram.ext import CommandHandler, MessageHandler, filters, ApplicationBuilder
 
 from Libraries.Emoji_Handler.emoji import load_positive_emoji
-from Libraries.handlers.commands_cyka import logger
 from Libraries.messages_handler.messages import get_random_daily_messages, get_random_daily_1337_messages
+
+from services.email import send_log_email
+from services.logger import logger
 
 
 def add_common_handlers(application):
     application.add_handler(CommandHandler("start", start_command))
+    application.add_handler(CommandHandler("getlogs", send_log))
 
     # Add a handler to react to text messages
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, love_lukyss_messages))
@@ -43,6 +46,36 @@ async def love_lukyss_messages(update: Update, context):
     user_id = update.message.from_user.id
     if user_id == int(os.getenv("Lukyss_id")):
         await context.bot.set_message_reaction(chat_id=chat_id, message_id=message_id, reaction=load_positive_emoji())
+
+
+async def send_log(update: Update, context) -> None:
+    chat_id = os.getenv('TSA_GROUP_ID')
+    log_file = '/app/logs/logs.txt'
+
+    # Utiliser Redis SETNX pour créer un verrou
+    if r.set("log_lock", "locked", ex=60, nx=True):  # Verrou avec expiration de 60 secondes
+        try:
+            # Envoi du fichier log via Telegram
+            if os.path.exists(log_file):
+                await send_log_email()
+                await update.message.reply_text("Données en cours de transfert...")
+                with open(log_file, 'rb') as file:
+                    await context.bot.send_document(chat_id=chat_id, document=file)
+                
+                # Suppression du fichier après envoi
+                os.remove(log_file)
+                logger.info(f"[{datetime.now()}] Fichier de log envoyé et supprimé.")
+            else:
+                await update.message.reply_text("Le fichier de log n'existe pas.")
+                logger.warning(f"[{datetime.now()}] Fichier de log non trouvé.")
+        finally:
+            # Supprimer le verrou après envoi ou en cas d'erreur
+            r.delete("log_lock")
+            logger.info(f"[{datetime.now()}] Verrou de log supprimé.")
+    else:
+        # Si le verrou existe déjà, un autre bot est en train d'envoyer le log
+        logger.info(f"[{datetime.now()}] Tentative d'envoi de log annulée, un autre bot est déjà en train d'envoyer.")
+
 
 
 # Connexion à Redis

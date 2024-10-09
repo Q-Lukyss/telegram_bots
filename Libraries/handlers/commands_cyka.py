@@ -8,15 +8,9 @@ from pytz import timezone
 from telegram import Update
 from telegram.ext import CommandHandler, ApplicationBuilder
 
-import logging
+from services.logger import logger
 
 from Libraries.messages_handler.messages import get_cykablyat_comeback
-
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
-)
-logger = logging.getLogger(__name__)
 
 
 # Ajout de l'Handler

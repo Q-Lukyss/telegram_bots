@@ -8,9 +8,11 @@ services:
     volumes:
       - ./Libraries:/app/Libraries  # Monte les librairies partagées
       - ./Cyka:/app/Cyka            # Monte le dossier Cyka uniquement
+      - ./logs:/app/logs            # Monte le dossier de logs
     environment:
       - PYTHONPATH=/app  # Défini PYTHONPATH
       - TZ=Europe/Paris  # Définir le fuseau horaire
+      - BOT_NAME=Cyka
 
   # Bot Blyat
   blyat_bot:
@@ -21,9 +23,11 @@ services:
     volumes:
       - ./Libraries:/app/Libraries  # Monte les librairies partagées
       - ./Blyat:/app/Blyat          # Monte le dossier Blyat uniquement
+      - ./logs:/app/logs            # Monte le dossier de logs
     environment:
       - PYTHONPATH=/app  # Défini PYTHONPATH
       - TZ=Europe/Paris  # Définir le fuseau horaire
+      - BOT_NAME=Blyat
 
   redis:
     image: redis:alpine
