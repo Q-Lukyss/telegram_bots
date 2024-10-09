@@ -31,3 +31,4 @@ services:
       - "6379:6379"
     environment:
       - TZ=Europe/Paris  # Définir le fuseau horaire
+    restart: unless-stopped
