@@ -12,5 +12,8 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
+# Désactiver ou limiter le niveau de log pour des bibliothèques spécifiques
+logging.getLogger('httpx').setLevel(logging.WARNING)  # Met à WARNING pour ignorer les logs INFO et DEBUG
+
 def log_action(action):
     logger.info(f"{os.getenv('BOT_NAME')} - {action}")

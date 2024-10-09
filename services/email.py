@@ -6,12 +6,17 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-def send_log_email():
+async def send_log_email():
     log_file = '/app/logs/logs.txt'
     
     # Configuration de l'email
     sender = os.getenv('EMAIL_SENDER')
     receiver = os.getenv('EMAIL_RECEIVER')
+    
+    if not sender or not receiver:
+        print("Les informations de l'expéditeur ou du destinataire ne sont pas correctes.")
+        return
+    
     msg = MIMEMultipart()
     msg['From'] = sender
     msg['To'] = receiver
@@ -25,9 +30,14 @@ def send_log_email():
     part.add_header('Content-Disposition', f'attachment; filename=logs.txt')
     msg.attach(part)
 
-    # Envoi de l'email via SMTP
-    with smtplib.SMTP('smtp.gmail.com', 587) as server:
-        server.starttls()
-        server.login(sender, os.gentenv('EMAIL_PASSWORD') )
-        server.sendmail(sender, receiver, msg.as_string())
-
+    try:
+        # Envoi de l'email via SMTP Free
+        with smtplib.SMTP('smtp.free.fr', 587, timeout=10) as server:
+            server.starttls()  # Sécuriser la connexion
+            # Pas besoin de login pour Free SMTP
+            server.sendmail(sender, receiver, msg.as_string())
+        print("Email envoyé avec succès.")
+    except smtplib.SMTPException as e:
+        print(f"Erreur SMTP : {e}")
+    except Exception as e:
+        print(f"Erreur lors de l'envoi de l'email : {e}")
