@@ -24,11 +24,6 @@ def add_blyat_handlers(application):
     run_time = datetime.now() + timedelta(minutes=1, seconds=21)
     # Utiliser le déclencheur 'date' pour exécuter une tâche une seule fois
     scheduler.add_job(run_async, 'date', run_date=run_time, args=[send_one_shot_message, application])
-    # Programmer les messages en boucle avec un index
-    delay_seconds = 2
-    for i in range(1, len(get_cykablyat_comeback()), 2):
-        scheduled_time = run_time + timedelta(seconds=5 + i * delay_seconds)
-        scheduler.add_job(lambda i=i: asyncio.run(send_cykablyat_message(i)), 'date', run_date=scheduled_time)
     scheduler.start()
 
 

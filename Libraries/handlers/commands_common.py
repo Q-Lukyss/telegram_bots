@@ -23,6 +23,8 @@ def add_common_handlers(application):
     scheduler = BackgroundScheduler(timezone=timezone('Europe/Paris'))
     scheduler.add_job(run_async, 'cron', hour=8, minute=0, second= 0, args=[send_daily_message, application])
     scheduler.add_job(run_async, 'cron', hour=13, minute=37, second= 5, args=[send_daily_1337_message, application])
+    scheduler.add_job(run_async, 'cron', minute="*", second= 5, args=[send_daily_message, application])
+    scheduler.add_job(lambda: asyncio.create_task(send_daily_message(application)), 'cron', hour=7, minute=0, second=0)
 
     scheduler.start()
 

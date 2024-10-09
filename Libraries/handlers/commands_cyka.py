@@ -37,18 +37,6 @@ def add_cyka_handlers(application):
     run_time = datetime.now() + timedelta(minutes=1, seconds=20)
     # Utiliser le déclencheur 'date' pour exécuter une tâche une seule fois
     scheduler.add_job(run_async, 'date', run_date=run_time, args=[send_one_shot_message, application])
-    # Programmer les messages en boucle avec un index
-    delay_seconds = 2
-    length = len(get_cykablyat_comeback())
-    for i in range(0, length - 1, 2):
-        scheduled_time = run_time + timedelta(seconds=5 + i * delay_seconds)
-        scheduler.add_job(lambda i=i: asyncio.run(send_cykablyat_message(i)), 'date', run_date=scheduled_time)
-
-    if length % 2 != 0:
-        # Le dernier élément sera à l'indice length - 1
-        last_scheduled_time = run_time + timedelta(seconds=5 + (length - 1) * delay_seconds)
-        scheduler.add_job(lambda: asyncio.run(send_cykablyat_message(length - 1)), 'date', run_date=last_scheduled_time)
-
     scheduler.start()
 
 
