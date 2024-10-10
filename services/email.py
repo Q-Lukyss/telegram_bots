@@ -12,9 +12,10 @@ async def send_log_email():
     # Configuration de l'email
     sender = os.getenv('EMAIL_SENDER')
     receiver = os.getenv('EMAIL_RECEIVER')
+    password = os.getenv('EMAIL_PASSWORD')  # Récupération du mot de passe depuis .env
     
-    if not sender or not receiver:
-        print("Les informations de l'expéditeur ou du destinataire ne sont pas correctes.")
+    if not sender or not receiver or not password:
+        print("Les informations d'authentification ne sont pas correctes.")
         return
     
     msg = MIMEMultipart()
@@ -31,10 +32,10 @@ async def send_log_email():
     msg.attach(part)
 
     try:
-        # Envoi de l'email via SMTP Free
-        with smtplib.SMTP('smtp.free.fr', 587, timeout=10) as server:
+        # Envoi de l'email via SMTP authentifié
+        with smtplib.SMTP('smtp.free.fr', 587, timeout=10) as server:  # Remplace par ton serveur SMTP
             server.starttls()  # Sécuriser la connexion
-            # Pas besoin de login pour Free SMTP
+            server.login(sender, password)  # Authentification avec mot de passe
             server.sendmail(sender, receiver, msg.as_string())
         print("Email envoyé avec succès.")
     except smtplib.SMTPException as e:
