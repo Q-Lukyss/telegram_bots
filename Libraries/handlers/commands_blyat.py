@@ -3,12 +3,13 @@ import os
 import random
 from datetime import datetime, timedelta
 from pytz import timezone
+from services.logger import logger
 from apscheduler.schedulers.background import BackgroundScheduler
 from telegram import Update
 from telegram.ext import CommandHandler, ApplicationBuilder
 
 from Libraries.Emoji_Handler.emoji import load_negative_emoji
-from Libraries.messages_handler.messages import get_cykablyat_comeback, get_random_suce_messages_object
+from Libraries.messages_handler.messages import get_cykablyat_comeback, get_random_suce_messages_object, toggle_evil_mode, get_evil_mode_status
 
 
 def add_blyat_handlers(application):
@@ -18,6 +19,7 @@ def add_blyat_handlers(application):
     application.add_handler(CommandHandler("cyka", cyka))
     application.add_handler(CommandHandler("sexeanale", sexeanale))
     application.add_handler(CommandHandler("suce", suce))
+    application.add_handler(CommandHandler("evil", toggle_evil_mode_command_blyat))
 
     # Planificateur APScheduler
     scheduler = BackgroundScheduler()
@@ -90,6 +92,26 @@ async def send_cykablyat_message(index):
     text = get_cykablyat_comeback()[index]
     application = ApplicationBuilder().token(os.getenv('BLYAT_TOKEN')).build()
     await application.bot.send_message(chat_id=chat_id, text=text)
+
+
+# Commande pour activer/désactiver l'evil mode de Blyat
+async def toggle_evil_mode_command_blyat(update: Update, context) -> None:
+    user_id = update.message.from_user.id
+    master_id = int(os.getenv("Lukyss_id"))
+
+    if user_id != master_id:
+        await update.message.reply_text("🚫 Seul le maître peut contrôler mon evil mode !")
+        return
+
+    evil_activated = toggle_evil_mode("Blyat")
+
+    if evil_activated:
+        await update.message.reply_text(
+            "😈 MON EVIL MODE ACTIVÉ ! \n\n🔥 Je vais maintenant envoyer des messages... *diaboliques* \n\n💀 - Blyat")
+        logger.info(f"[{datetime.now()}] 😈 Evil mode ACTIVÉ pour Blyat par {update.message.from_user.username}")
+    else:
+        await update.message.reply_text("😇 Mon evil mode désactivé.\n\n🕊️ Retour à la normale...\n\n✅ - Blyat")
+        logger.info(f"[{datetime.now()}] 😇 Evil mode DÉSACTIVÉ pour Blyat par {update.message.from_user.username}")
 
 
 def run_async(func, *args):

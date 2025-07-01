@@ -10,7 +10,7 @@ from telegram.ext import CommandHandler, MessageHandler, filters, ApplicationBui
 
 from Libraries.Emoji_Handler.emoji import load_positive_emoji
 from Libraries.messages_handler.messages import get_random_daily_messages, get_random_daily_1337_messages, \
-    toggle_evil_mode, get_evil_mode_status
+    get_evil_mode_status
 
 from services.email import send_log_email
 from services.logger import logger
@@ -18,26 +18,17 @@ from services.logger import logger
 # Connexion à Redis
 r = redis.Redis(host='redis', port=6379, decode_responses=True)
 
-# Variable globale pour éviter de créer plusieurs schedulers
-_scheduler_initialized = False
-
 
 def add_common_handlers(application, bot_name="unknown"):
-    """
-    Ajouter les handlers communs à l'application
-    bot_name: 'Cyka' ou 'Blyat' pour identifier le bot
-    """
-    global _scheduler_initialized
-
+    """Ajouter les handlers communs à l'application"""
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("getlogs", send_log))
-    application.add_handler(CommandHandler("evil", toggle_evil_mode_command))
     application.add_handler(CommandHandler("evilstatus", evil_mode_status_command))
 
     # Add a handler to react to text messages
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, love_lukyss_messages))
 
-    # Chaque bot initialise son propre scheduler pour permettre l'alternance
+    # Chaque bot initialise son propre scheduler
     setup_scheduler_for_bot(application, bot_name)
     logger.info(f"[{datetime.now()}] Scheduler initialisé pour {bot_name}")
 
@@ -46,7 +37,7 @@ def setup_scheduler_for_bot(application, bot_name):
     """Configurer le scheduler pour chaque bot individuellement"""
     scheduler = BackgroundScheduler(timezone=timezone('Europe/Paris'))
 
-    # Messages journaliers à 8h00 - chaque bot essaie d'envoyer
+    # Messages journaliers à 8h00
     scheduler.add_job(
         run_async_with_bot_selection,
         'cron',
@@ -58,7 +49,7 @@ def setup_scheduler_for_bot(application, bot_name):
         replace_existing=True
     )
 
-    # Messages 1337 à 13h37 - chaque bot essaie d'envoyer
+    # Messages 1337 à 13h37
     scheduler.add_job(
         run_async_with_bot_selection,
         'cron',
@@ -74,7 +65,6 @@ def setup_scheduler_for_bot(application, bot_name):
     logger.info(f"[{datetime.now()}] Scheduler démarré pour {bot_name}")
 
 
-# Commande commune start
 async def start_command(update: Update, context) -> None:
     await update.message.reply_text("... Alea Jacta est !\nAucun retour n'est possible !")
 
@@ -111,11 +101,9 @@ async def send_log(update: Update, context) -> None:
         logger.info(f"[{datetime.now()}] Tentative d'envoi de log annulée, un autre bot est déjà en train d'envoyer.")
 
 
-# Nouvelle fonction pour la sélection aléatoire du bot qui envoie
+# Fonction pour la sélection aléatoire du bot qui envoie
 async def send_message_with_random_bot(get_message_func, log_prefix, requesting_bot):
-    """
-    Fonction qui permet à un bot d'être sélectionné aléatoirement pour envoyer un message
-    """
+    """Fonction qui permet à un bot d'être sélectionné aléatoirement pour envoyer un message"""
     chat_id = os.getenv('TSA_GROUP_ID')
     lock_key = f"message_lock_{log_prefix.replace(' ', '_').replace('[', '').replace(']', '').lower()}"
 
@@ -131,7 +119,8 @@ async def send_message_with_random_bot(get_message_func, log_prefix, requesting_
         logger.info(f"[{datetime.now()}] {log_prefix} {requesting_bot} sélectionné et verrou obtenu")
 
         try:
-            text = get_message_func()
+            # Passer le nom du bot pour récupérer le bon message selon son evil mode
+            text = get_message_func(requesting_bot)
 
             # Utiliser le token du bot qui a été sélectionné
             if requesting_bot == 'Cyka':
@@ -168,42 +157,22 @@ async def send_daily_1337_message_with_selection(requesting_bot):
     await send_message_with_random_bot(get_random_daily_1337_messages, "[Message 1337]", requesting_bot)
 
 
-# Commande pour activer/désactiver l'evil mode (fonctionne sur les deux bots)
-async def toggle_evil_mode_command(update: Update, context) -> None:
-    user_id = update.message.from_user.id
-    master_id = int(os.getenv("Lukyss_id"))
-
-    if user_id != master_id:
-        await update.message.reply_text("🚫 Seul le maître peut contrôler l'evil mode !")
-        return
-
+# Commande pour vérifier le statut de l'evil mode (les deux bots répondent)
+async def evil_mode_status_command(update: Update, context) -> None:
     # Déterminer quel bot répond
     bot_name = "Cyka" if "cyka" in str(context.bot.token).lower() else "Blyat"
 
-    evil_activated = toggle_evil_mode()
+    cyka_status = get_evil_mode_status("Cyka")
+    blyat_status = get_evil_mode_status("Blyat")
 
-    if evil_activated:
-        await update.message.reply_text(
-            f"😈 EVIL MODE ACTIVÉ ! \n\n🔥 Les deux bots (Cyka & Blyat) vont maintenant envoyer des messages... *diaboliques* \n\n💀 Activé via {bot_name}")
-        logger.info(f"[{datetime.now()}] 😈 Evil mode ACTIVÉ par {update.message.from_user.username} via {bot_name}")
-    else:
-        await update.message.reply_text(
-            f"😇 Evil mode désactivé pour les deux bots.\n\n🕊️ Retour à la normale...\n\n✅ Désactivé via {bot_name}")
-        logger.info(f"[{datetime.now()}] 😇 Evil mode DÉSACTIVÉ par {update.message.from_user.username} via {bot_name}")
-
-
-# Commande pour vérifier le statut de l'evil mode
-async def evil_mode_status_command(update: Update, context) -> None:
-    status = get_evil_mode_status()
-    bot_name = "Cyka" if "cyka" in str(context.bot.token).lower() else "Blyat"
-
-    status_emoji = "😈🔥" if status == "activé" else "😇✨"
+    cyka_emoji = "😈🔥" if cyka_status == "activé" else "😇✨"
+    blyat_emoji = "😈🔥" if blyat_status == "activé" else "😇✨"
 
     await update.message.reply_text(
-        f"{status_emoji} **Evil mode actuellement : {status.upper()}**\n\n"
-        f"🤖 Statut vérifié par : {bot_name}\n"
-        f"🔄 Effet sur : Cyka & Blyat\n"
-        f"📅 Messages concernés : Daily + 1337"
+        f"📊 **STATUT EVIL MODE**\n\n"
+        f"{cyka_emoji} **Cyka** : {cyka_status.upper()}\n"
+        f"{blyat_emoji} **Blyat** : {blyat_status.upper()}\n\n"
+        f"🤖 Statut vérifié par : {bot_name}"
     )
 
 
@@ -212,6 +181,5 @@ def run_async_with_bot_selection(func, bot_name):
     asyncio.run(func(bot_name))
 
 
-# Fonction legacy pour compatibilité (si utilisée ailleurs)
 def run_async(func, *args):
     asyncio.run(func(*args))

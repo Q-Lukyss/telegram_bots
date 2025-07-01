@@ -10,7 +10,7 @@ from telegram.ext import CommandHandler, ApplicationBuilder
 
 from services.logger import logger
 
-from Libraries.messages_handler.messages import get_cykablyat_comeback
+from Libraries.messages_handler.messages import get_cykablyat_comeback, toggle_evil_mode, get_evil_mode_status
 
 
 # Ajout de l'Handler
@@ -25,6 +25,7 @@ def add_cyka_handlers(application):
     application.add_handler(CommandHandler("jours_feries", jours_feries))
     application.add_handler(CommandHandler("ville", villes))
     application.add_handler(CommandHandler("id", get_my_id))
+    application.add_handler(CommandHandler("evil", toggle_evil_mode_command_cyka))  # Commande evil pour Cyka
 
     # Planificateur APScheduler
     scheduler = BackgroundScheduler()
@@ -165,6 +166,26 @@ async def send_cykablyat_message(index):
     text = get_cykablyat_comeback()[index]
     application = ApplicationBuilder().token(os.getenv('CYKA_TOKEN')).build()
     await application.bot.send_message(chat_id=chat_id, text=text)
+
+
+# Commande pour activer/désactiver l'evil mode de Cyka
+async def toggle_evil_mode_command_cyka(update: Update, context) -> None:
+    user_id = update.message.from_user.id
+    master_id = int(os.getenv("Lukyss_id"))
+
+    if user_id != master_id:
+        await update.message.reply_text("🚫 Seul le maître peut contrôler mon evil mode !")
+        return
+
+    evil_activated = toggle_evil_mode("Cyka")
+
+    if evil_activated:
+        await update.message.reply_text(
+            "😈 MON EVIL MODE ACTIVÉ ! \n\n🔥 Je vais maintenant envoyer des messages... *diaboliques* \n\n💀 - Cyka")
+        logger.info(f"[{datetime.now()}] 😈 Evil mode ACTIVÉ pour Cyka par {update.message.from_user.username}")
+    else:
+        await update.message.reply_text("😇 Mon evil mode désactivé.\n\n🕊️ Retour à la normale...\n\n✅ - Cyka")
+        logger.info(f"[{datetime.now()}] 😇 Evil mode DÉSACTIVÉ pour Cyka par {update.message.from_user.username}")
 
 
 def run_async(func, *args):

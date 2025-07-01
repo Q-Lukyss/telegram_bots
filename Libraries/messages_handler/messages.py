@@ -13,30 +13,32 @@ def load_messages():
     return data
 
 
-def is_evil_mode_active():
-    """Vérifie si le mode evil est activé via Redis"""
-    return r.get("evil_mode") == "true"
+def is_evil_mode_active(bot_name):
+    """Vérifie si le mode evil est activé pour un bot spécifique"""
+    return r.get(f"evil_mode_{bot_name.lower()}") == "true"
 
 
-def toggle_evil_mode():
-    """Active/désactive le mode evil"""
-    current_mode = r.get("evil_mode")
+def toggle_evil_mode(bot_name):
+    """Active/désactive le mode evil pour un bot spécifique"""
+    key = f"evil_mode_{bot_name.lower()}"
+    current_mode = r.get(key)
     if current_mode == "true":
-        r.set("evil_mode", "false")
+        r.set(key, "false")
         return False
     else:
-        r.set("evil_mode", "true")
+        r.set(key, "true")
         return True
 
 
-def get_evil_mode_status():
-    """Retourne le statut actuel du mode evil"""
-    return "activé" if is_evil_mode_active() else "désactivé"
+def get_evil_mode_status(bot_name):
+    """Retourne le statut actuel du mode evil pour un bot spécifique"""
+    return "activé" if is_evil_mode_active(bot_name) else "désactivé"
 
 
-def get_random_daily_messages():
+def get_random_daily_messages(bot_name=None):
+    """Récupère un message journalier en fonction du mode evil du bot qui envoie"""
     data = load_messages()
-    if is_evil_mode_active():
+    if bot_name and is_evil_mode_active(bot_name):
         random_daily_messages = random.choice(data['daily_evil'])
     else:
         random_daily_messages = random.choice(data['daily'])
@@ -47,9 +49,11 @@ def get_cykablyat_comeback():
     cykablyat_comeback = load_messages()['cykablyat_rocket_return']
     return cykablyat_comeback
 
-def get_random_daily_1337_messages():
+
+def get_random_daily_1337_messages(bot_name=None):
+    """Récupère un message 1337 en fonction du mode evil du bot qui envoie"""
     data = load_messages()
-    if is_evil_mode_active():
+    if bot_name and is_evil_mode_active(bot_name):
         random_daily_1337_messages = random.choice(data['1337_evil'])
     else:
         random_daily_1337_messages = random.choice(data['1337'])
