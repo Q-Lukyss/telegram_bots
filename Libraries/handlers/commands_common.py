@@ -9,13 +9,26 @@ from telegram import Update
 from telegram.ext import CommandHandler, MessageHandler, filters, ApplicationBuilder
 
 from Libraries.Emoji_Handler.emoji import load_positive_emoji
-from Libraries.messages_handler.messages import get_random_daily_messages, get_random_daily_1337_messages, toggle_evil_mode, get_evil_mode_status
+from Libraries.messages_handler.messages import get_random_daily_messages, get_random_daily_1337_messages, \
+    toggle_evil_mode, get_evil_mode_status
 
 from services.email import send_log_email
 from services.logger import logger
 
+# Connexion à Redis
+r = redis.Redis(host='redis', port=6379, decode_responses=True)
 
-def add_common_handlers(application):
+# Variable globale pour éviter de créer plusieurs schedulers
+_scheduler_initialized = False
+
+
+def add_common_handlers(application, bot_name="unknown"):
+    """
+    Ajouter les handlers communs à l'application
+    bot_name: 'Cyka' ou 'Blyat' pour identifier le bot
+    """
+    global _scheduler_initialized
+
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("getlogs", send_log))
     application.add_handler(CommandHandler("evil", toggle_evil_mode_command))
@@ -24,22 +37,47 @@ def add_common_handlers(application):
     # Add a handler to react to text messages
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, love_lukyss_messages))
 
-    # Gérer les tâches programmées Pour Le message journalier
+    # Chaque bot initialise son propre scheduler pour permettre l'alternance
+    setup_scheduler_for_bot(application, bot_name)
+    logger.info(f"[{datetime.now()}] Scheduler initialisé pour {bot_name}")
+
+
+def setup_scheduler_for_bot(application, bot_name):
+    """Configurer le scheduler pour chaque bot individuellement"""
     scheduler = BackgroundScheduler(timezone=timezone('Europe/Paris'))
-    scheduler.add_job(run_async, 'cron', hour=8, minute=0, second= 0, args=[send_daily_message, application])
-    scheduler.add_job(run_async, 'cron', hour=13, minute=37, second= 5, args=[send_daily_1337_message, application])
+
+    # Messages journaliers à 8h00 - chaque bot essaie d'envoyer
+    scheduler.add_job(
+        run_async_with_bot_selection,
+        'cron',
+        hour=8,
+        minute=0,
+        second=0,
+        args=[send_daily_message_with_selection, bot_name],
+        id=f'daily_message_{bot_name}',
+        replace_existing=True
+    )
+
+    # Messages 1337 à 13h37 - chaque bot essaie d'envoyer
+    scheduler.add_job(
+        run_async_with_bot_selection,
+        'cron',
+        hour=13,
+        minute=37,
+        second=5,
+        args=[send_daily_1337_message_with_selection, bot_name],
+        id=f'1337_message_{bot_name}',
+        replace_existing=True
+    )
 
     scheduler.start()
-
-
-# Commande commune d'aide
-async def help_command(update: Update, context) -> None:
-    await update.message.reply_text("Voici comment je peux vous aider!")
+    logger.info(f"[{datetime.now()}] Scheduler démarré pour {bot_name}")
 
 
 # Commande commune start
 async def start_command(update: Update, context) -> None:
     await update.message.reply_text("... Alea Jacta est !\nAucun retour n'est possible !")
+
 
 async def love_lukyss_messages(update: Update, context):
     message_id = update.message.message_id
@@ -53,103 +91,127 @@ async def send_log(update: Update, context) -> None:
     chat_id = os.getenv('TSA_GROUP_ID')
     log_file = '/app/logs/logs.txt'
 
-    # Utiliser Redis SETNX pour créer un verrou
-    if r.set("log_lock", "locked", ex=60, nx=True):  # Verrou avec expiration de 60 secondes
+    if r.set("log_lock", "locked", ex=60, nx=True):
         try:
-            # Envoi du fichier log via Telegram
             if os.path.exists(log_file):
                 await send_log_email()
                 await update.message.reply_text("Données en cours de transfert...")
                 with open(log_file, 'rb') as file:
                     await context.bot.send_document(chat_id=chat_id, document=file)
-                
-                # Suppression du fichier après envoi
+
                 os.remove(log_file)
                 logger.info(f"[{datetime.now()}] Fichier de log envoyé et supprimé.")
             else:
                 await update.message.reply_text("Le fichier de log n'existe pas.")
                 logger.warning(f"[{datetime.now()}] Fichier de log non trouvé.")
         finally:
-            # Supprimer le verrou après envoi ou en cas d'erreur
             r.delete("log_lock")
             logger.info(f"[{datetime.now()}] Verrou de log supprimé.")
     else:
-        # Si le verrou existe déjà, un autre bot est en train d'envoyer le log
         logger.info(f"[{datetime.now()}] Tentative d'envoi de log annulée, un autre bot est déjà en train d'envoyer.")
 
 
-
-# Connexion à Redis
-r = redis.Redis(host='redis', port=6379, decode_responses=True)
-
-
-async def message_journalier(context):
+# Nouvelle fonction pour la sélection aléatoire du bot qui envoie
+async def send_message_with_random_bot(get_message_func, log_prefix, requesting_bot):
+    """
+    Fonction qui permet à un bot d'être sélectionné aléatoirement pour envoyer un message
+    """
     chat_id = os.getenv('TSA_GROUP_ID')
-    today = datetime.now().day
-    if today % 2 == 1:
-        await context.bot.send_message(chat_id=chat_id, text="Coucou les mecs <3\nPassez une bonne journée :)")
+    lock_key = f"message_lock_{log_prefix.replace(' ', '_').replace('[', '').replace(']', '').lower()}"
 
+    # Seulement le bot choisi aléatoirement peut envoyer le message
+    chosen_bot = random.choice(['Cyka', 'Blyat'])
 
-# Fonction générique pour envoyer des messages
-async def send_message(context, get_message_func, log_prefix):
-    chat_id = os.getenv('TSA_GROUP_ID')
+    if requesting_bot != chosen_bot:
+        logger.info(f"[{datetime.now()}] {log_prefix} {requesting_bot} n'a pas été choisi (choisi: {chosen_bot})")
+        return
 
-    # Utiliser SETNX pour créer le verrou uniquement si aucun autre ne l'a créé
-    if r.set("message_lock", "locked", ex=60, nx=True):  # Verrou avec expiration de 60 secondes
-        logger.info(f"[{datetime.now()}] {log_prefix} Verrou créé, envoi du message")
+    # Le bot choisi essaie de prendre le verrou
+    if r.set(lock_key, f"locked_by_{requesting_bot}", ex=60, nx=True):
+        logger.info(f"[{datetime.now()}] {log_prefix} {requesting_bot} sélectionné et verrou obtenu")
 
         try:
-            # Choisir aléatoirement entre Cyka et Blyat
-            bot_choice = random.choice(['Cyka', 'Blyat'])
-            text = get_message_func()  # Récupérer le message avec la fonction passée en argument
+            text = get_message_func()
 
-            if bot_choice == 'Cyka':
-                application = ApplicationBuilder().token(os.getenv('CYKA_TOKEN')).build()
+            # Utiliser le token du bot qui a été sélectionné
+            if requesting_bot == 'Cyka':
+                token = os.getenv('CYKA_TOKEN')
             else:
-                application = ApplicationBuilder().token(os.getenv('BLYAT_TOKEN')).build()
+                token = os.getenv('BLYAT_TOKEN')
 
-            await application.bot.send_message(chat_id=chat_id, text=text)
-            logger.info(f"[{datetime.now()}] {log_prefix} Message envoyé par {bot_choice}")
+            temp_application = ApplicationBuilder().token(token).build()
+            await temp_application.bot.send_message(chat_id=chat_id, text=text)
+
+            logger.info(f"[{datetime.now()}] {log_prefix} Message envoyé par {requesting_bot}")
+
+            # Log spécial pour l'evil mode
+            evil_indicators = ['😈', '💀', '🔥', '💣', '⚡', '🖕', '☠️', '🌚', '🥊', '🔩', '💥', '⚔️', '🏛️', '🦠', '🔨', '🧠', '🦾',
+                               '🔪', '🧨']
+            if any(indicator in text for indicator in evil_indicators):
+                logger.info(f"[{datetime.now()}] {log_prefix} 😈 MESSAGE EVIL ENVOYÉ par {requesting_bot} !")
+
+        except Exception as e:
+            logger.error(f"[{datetime.now()}] {log_prefix} Erreur lors de l'envoi par {requesting_bot}: {e}")
         finally:
-            # Supprimer le verrou après l'envoi du message
-            r.delete("message_lock")
-            logger.info(f"[{datetime.now()}] {log_prefix} Verrou supprimé après envoi du message")
+            r.delete(lock_key)
+            logger.info(f"[{datetime.now()}] {log_prefix} Verrou supprimé par {requesting_bot}")
     else:
-        logger.info(f"[{datetime.now()}] {log_prefix} Un autre bot envoie déjà un message. Annulation.")
+        logger.info(f"[{datetime.now()}] {log_prefix} {requesting_bot} choisi mais message déjà envoyé")
 
 
-# Fonction pour le message journalier classique
-async def send_daily_message(context):
-    await send_message(context, get_random_daily_messages, "[Message Journalier]")
-
-# Fonction pour le message 1337
-async def send_daily_1337_message(context):
-    await send_message(context, get_random_daily_1337_messages, "[Message 1337]")
+# Fonctions spécifiques pour chaque type de message
+async def send_daily_message_with_selection(requesting_bot):
+    await send_message_with_random_bot(get_random_daily_messages, "[Message Journalier]", requesting_bot)
 
 
-# Commande pour activer/désactiver l'evil mode
+async def send_daily_1337_message_with_selection(requesting_bot):
+    await send_message_with_random_bot(get_random_daily_1337_messages, "[Message 1337]", requesting_bot)
+
+
+# Commande pour activer/désactiver l'evil mode (fonctionne sur les deux bots)
 async def toggle_evil_mode_command(update: Update, context) -> None:
     user_id = update.message.from_user.id
     master_id = int(os.getenv("Lukyss_id"))
 
-    # Seul le maître peut contrôler l'evil mode
     if user_id != master_id:
-        await update.message.reply_text("🚫 Seul le maître peut contrôler mon evil mode !")
+        await update.message.reply_text("🚫 Seul le maître peut contrôler l'evil mode !")
         return
 
+    # Déterminer quel bot répond
+    bot_name = "Cyka" if "cyka" in str(context.bot.token).lower() else "Blyat"
+
     evil_activated = toggle_evil_mode()
+
     if evil_activated:
-        await update.message.reply_text("😈 EVIL MODE ACTIVÉ ! Les messages vont devenir... intéressants 🔥")
-        logger.info(f"[{datetime.now()}] Evil mode activé par {update.message.from_user.username}")
+        await update.message.reply_text(
+            f"😈 EVIL MODE ACTIVÉ ! \n\n🔥 Les deux bots (Cyka & Blyat) vont maintenant envoyer des messages... *diaboliques* \n\n💀 Activé via {bot_name}")
+        logger.info(f"[{datetime.now()}] 😈 Evil mode ACTIVÉ par {update.message.from_user.username} via {bot_name}")
     else:
-        await update.message.reply_text("😇 Evil mode désactivé. Retour à la normale.")
-        logger.info(f"[{datetime.now()}] Evil mode désactivé par {update.message.from_user.username}")
+        await update.message.reply_text(
+            f"😇 Evil mode désactivé pour les deux bots.\n\n🕊️ Retour à la normale...\n\n✅ Désactivé via {bot_name}")
+        logger.info(f"[{datetime.now()}] 😇 Evil mode DÉSACTIVÉ par {update.message.from_user.username} via {bot_name}")
+
 
 # Commande pour vérifier le statut de l'evil mode
 async def evil_mode_status_command(update: Update, context) -> None:
     status = get_evil_mode_status()
-    await update.message.reply_text(f"😈 Evil mode actuellement : **{status}**")
+    bot_name = "Cyka" if "cyka" in str(context.bot.token).lower() else "Blyat"
+
+    status_emoji = "😈🔥" if status == "activé" else "😇✨"
+
+    await update.message.reply_text(
+        f"{status_emoji} **Evil mode actuellement : {status.upper()}**\n\n"
+        f"🤖 Statut vérifié par : {bot_name}\n"
+        f"🔄 Effet sur : Cyka & Blyat\n"
+        f"📅 Messages concernés : Daily + 1337"
+    )
 
 
+def run_async_with_bot_selection(func, bot_name):
+    """Wrapper pour exécuter les fonctions async avec le nom du bot"""
+    asyncio.run(func(bot_name))
+
+
+# Fonction legacy pour compatibilité (si utilisée ailleurs)
 def run_async(func, *args):
     asyncio.run(func(*args))
