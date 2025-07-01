@@ -9,7 +9,7 @@ from telegram import Update
 from telegram.ext import CommandHandler, MessageHandler, filters, ApplicationBuilder
 
 from Libraries.Emoji_Handler.emoji import load_positive_emoji
-from Libraries.messages_handler.messages import get_random_daily_messages, get_random_daily_1337_messages
+from Libraries.messages_handler.messages import get_random_daily_messages, get_random_daily_1337_messages, toggle_evil_mode, get_evil_mode_status
 
 from services.email import send_log_email
 from services.logger import logger
@@ -18,6 +18,8 @@ from services.logger import logger
 def add_common_handlers(application):
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("getlogs", send_log))
+    application.add_handler(CommandHandler("evil", toggle_evil_mode_command))
+    application.add_handler(CommandHandler("evilstatus", evil_mode_status_command))
 
     # Add a handler to react to text messages
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, love_lukyss_messages))
@@ -123,6 +125,30 @@ async def send_daily_message(context):
 # Fonction pour le message 1337
 async def send_daily_1337_message(context):
     await send_message(context, get_random_daily_1337_messages, "[Message 1337]")
+
+
+# Commande pour activer/désactiver l'evil mode
+async def toggle_evil_mode_command(update: Update, context) -> None:
+    user_id = update.message.from_user.id
+    master_id = int(os.getenv("Lukyss_id"))
+
+    # Seul le maître peut contrôler l'evil mode
+    if user_id != master_id:
+        await update.message.reply_text("🚫 Seul le maître peut contrôler mon evil mode !")
+        return
+
+    evil_activated = toggle_evil_mode()
+    if evil_activated:
+        await update.message.reply_text("😈 EVIL MODE ACTIVÉ ! Les messages vont devenir... intéressants 🔥")
+        logger.info(f"[{datetime.now()}] Evil mode activé par {update.message.from_user.username}")
+    else:
+        await update.message.reply_text("😇 Evil mode désactivé. Retour à la normale.")
+        logger.info(f"[{datetime.now()}] Evil mode désactivé par {update.message.from_user.username}")
+
+# Commande pour vérifier le statut de l'evil mode
+async def evil_mode_status_command(update: Update, context) -> None:
+    status = get_evil_mode_status()
+    await update.message.reply_text(f"😈 Evil mode actuellement : **{status}**")
 
 
 def run_async(func, *args):
